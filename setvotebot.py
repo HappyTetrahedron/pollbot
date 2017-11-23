@@ -10,7 +10,7 @@ Then, the bot is started and runs until we press Ctrl-C on the command line.
 """
 from uuid import uuid4
 
-from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardButton, ReplyKeyboardMarkup
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler, ConversationHandler, \
     RegexHandler
 import logging
@@ -33,7 +33,15 @@ logger = logging.getLogger(__name__)
 db = dataset.connect('sqlite:///votes.db')
 
 # Conversation states:
-NOT_ENGAGED, TYPING_TITLE, TYPING_OPTION = range(3)
+NOT_ENGAGED, TYPING_TITLE, TYPING_TYPE, TYPING_OPTION = range(4)
+
+POLL_TYPE_BASIC, POLL_TYPE_SET, POLL_TYPE_SITRAVO = range(3)
+
+POLL_TYPES_MAP = {
+    POLL_TYPE_BASIC: "Basic poll",
+    POLL_TYPE_SET: "Subset poll",
+    POLL_TYPE_SITRAVO: "Single transferable vote poll",
+}
 
 
 # Conversation handlers:
@@ -44,13 +52,22 @@ def start(bot, update):
     return TYPING_TITLE
 
 
-def handle_title(bot, update, user_data):
+def handle_type(bot, update, user_data):
     text = update.message.text
-    user_data['title'] = text
+    user_data['type'] = next((i for i, val in POLL_TYPES_MAP.items() if val == text), None)
     user_data['options'] = []
     update.message.reply_text("Awesome. Now, send me the first answer option.")
 
     return TYPING_OPTION
+
+
+def handle_title(bot, update, user_data):
+    text = update.message.text
+    user_data['title'] = text
+    update.message.reply_text("Cool! What kind of survey is it going to be?",
+                              reply_markup=assemble_reply_keyboard())
+
+    return TYPING_TYPE
 
 
 def handle_option(bot, update, user_data):
@@ -91,12 +108,28 @@ def handle_done(bot, update, user_data):
                               parse_mode='Markdown'
                               )
 
-    user_data = None
+    user_data.clear()
 
     return NOT_ENGAGED
 
 
-# Helper functions
+def assemble_reply_keyboard():
+    keyboard = []
+    for _, val in POLL_TYPES_MAP.items():
+        keyboard.append([val])
+
+    return ReplyKeyboardMarkup(
+        keyboard,
+        one_time_keyboard=True
+    )
+
+
+def assemble_type_regex():
+    orclause = '|'.join(list(POLL_TYPES_MAP.values()))
+    regex = '^({})$'.format(orclause)
+    return regex
+
+
 def assemble_inline_keyboard(poll):
     return InlineKeyboardMarkup(get_inline_keyboard_items(poll))
 
@@ -240,14 +273,15 @@ def main():
             NOT_ENGAGED: [],
             TYPING_TITLE: [MessageHandler(Filters.text,
                                           handle_title,
-                                          pass_user_data=True)
-                          ],
+                                          pass_user_data=True)],
+            TYPING_TYPE: [RegexHandler(assemble_type_regex(),
+                                       handle_type,
+                                       pass_user_data=True)],
             TYPING_OPTION: [MessageHandler(Filters.text,
                                            handle_option,
                                            pass_user_data=True),
                             CommandHandler("done", handle_done,
-                                           pass_user_data=True)
-                ]
+                                           pass_user_data=True)]
         },
         fallbacks=[RegexHandler('^Done$', handle_done, pass_user_data=True)]
     )
