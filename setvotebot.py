@@ -35,6 +35,7 @@ db = dataset.connect('sqlite:///votes.db')
 # Conversation states:
 NOT_ENGAGED, TYPING_TITLE, TYPING_OPTION = range(3)
 
+
 # Conversation handlers:
 def start(bot, update):
     """Send a message when the command /start is issued."""
@@ -85,9 +86,12 @@ def handle_done(bot, update, user_data):
     inline_keyboard_items.append([publish_button])
     inline_keyboard = InlineKeyboardMarkup(inline_keyboard_items)
 
-    update.message.reply_text(poll['title'],
-                              reply_markup=inline_keyboard
+    update.message.reply_text(assemble_message_text(poll),
+                              reply_markup=inline_keyboard,
+                              parse_mode='Markdown'
                               )
+
+    user_data = None
 
     return NOT_ENGAGED
 
@@ -99,23 +103,44 @@ def assemble_inline_keyboard(poll):
 
 def get_inline_keyboard_items(poll):
     buttons = []
-    for option in poll['options']:
+    for i, option in enumerate(poll['options']):
+        num_votes = list(poll['votes'].values()).count(i) if 'votes' in poll else 0
         buttons.append([
-            InlineKeyboardButton(option['text'],
-                                 callback_data=option['text'])
+            InlineKeyboardButton("{}{}{}".format(option['text'],
+                                                 " - " if num_votes > 0 else "",
+                                                 num_votes if num_votes > 0 else ""),
+                                 callback_data='{"id":"%s","i":%d}' % (poll['poll_id'], i))
         ])
     return buttons
+
+
+def assemble_message_text(poll):
+    message = "*{}*\n".format(poll['title'])
+
+    for i, option in enumerate(poll['options']):
+        message += "\n"
+        message += "{}: {}".format(option['text'], get_num_votes(poll, i))
+
+    return message
+
+
+def get_num_votes(poll, i):
+    return list(poll['votes'].values()).count(i) if 'votes' in poll else 0
 
 
 def serialize(poll):
     ser = dict(poll)
     ser['options'] = json.dumps(poll['options'])
+    if 'votes' in ser:
+        ser['votes'] = json.dumps(poll['votes'])
     return ser
 
 
 def deserialize(serialized):
     poll = dict(serialized)
     poll['options'] = json.loads(serialized['options'])
+    if 'votes' in poll:
+        poll['votes'] = json.loads(serialized['votes'])
     return poll
 
 
@@ -148,7 +173,8 @@ def inlinequery(bot, update):
                 id=poll['poll_id'],
                 title=poll['title'],
                 input_message_content=InputTextMessageContent(
-                    message_text=poll['title'],
+                    message_text=assemble_message_text(poll),
+                    parse_mode='Markdown'
                 ),
                 reply_markup=assemble_inline_keyboard(poll)
             )
@@ -159,11 +185,44 @@ def inlinequery(bot, update):
 # Inline button press handler
 def button(bot, update):
     query = update.callback_query
+    data_dict = json.loads(update.callback_query.data)
+
+    table = db['setpoll_instances']
+    templates = db['setpolls']
+
+    kwargs = {}
     if query.message:
-        # TODO
-        pass
-        bot.edit_message_text(text="You are {}!".format(query.data),
-                              inline_message_id=query.inline_message_id)
+        kwargs['message_id'] = query.message.message_id
+        kwargs['chat_id'] = query.message.chat.id
+        result = table.find_one(message_id=query.message.message_id,
+                                chat_id=query.message.chat.id)
+        if not result:
+            result = templates.find_one(poll_id=data_dict['id'])
+            result = dict(result)
+            result.pop('id')
+            result['message_id'] = query.message.message_id
+            result['chat_id'] = query.message.chat.id
+            result['votes'] = '{}'
+    elif query.inline_message_id:
+        kwargs['inline_message_id'] = query.inline_message_id
+        result = table.find_one(inline_message_id=query.inline_message_id)
+        if not result:
+            result = templates.find_one(poll_id=data_dict['id'])
+            result = dict(result)
+            result.pop('id')
+            result['inline_message_id'] = query.inline_message_id
+            result['votes'] = '{}'
+
+    poll = deserialize(result)
+    uid_str = str(query.from_user.id)
+    if uid_str in poll['votes']:
+        poll['votes'].pop(uid_str)
+    poll['votes'][uid_str] = data_dict['i']
+    bot.edit_message_text(text=assemble_message_text(poll),
+                          parse_mode='Markdown',
+                          reply_markup=assemble_inline_keyboard(poll),
+                          **kwargs)
+    table.upsert(serialize(poll), ['id'])
 
 
 def main():
