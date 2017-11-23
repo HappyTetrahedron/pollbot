@@ -10,7 +10,7 @@ Then, the bot is started and runs until we press Ctrl-C on the command line.
 """
 from uuid import uuid4
 
-from telegram import InlineKeyboardButton, ReplyKeyboardMarkup
+from telegram import InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler, ConversationHandler, \
     RegexHandler
 import logging
@@ -19,7 +19,9 @@ import dataset
 
 import json
 
-# Enable logging
+import basic_poll_handler
+import set_poll_handler
+
 from telegram.ext.inlinequeryhandler import InlineQueryHandler
 from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 from telegram.inline.inlinequeryresultarticle import InlineQueryResultArticle
@@ -43,6 +45,11 @@ POLL_TYPES_MAP = {
     POLL_TYPE_SITRAVO: "Single transferable vote poll",
 }
 
+POLL_TYPES_HANDLERS = {
+    POLL_TYPE_BASIC: basic_poll_handler,
+    POLL_TYPE_SET: set_poll_handler,
+    POLL_TYPE_SITRAVO: basic_poll_handler,
+}
 
 # Conversation handlers:
 def start(bot, update):
@@ -72,9 +79,17 @@ def handle_title(bot, update, user_data):
 
 def handle_option(bot, update, user_data):
     text = update.message.text
+    handler = POLL_TYPES_HANDLERS[user_data['type']]
     user_data['options'].append(text)
 
-    update.message.reply_text("Doing great! Now, send me another answer option or type /done to publish.")
+    if len(user_data['options']) >= handler.max_options:
+        handle_done(bot, update, user_data)
+
+    update.message.reply_text("Doing great! Now, send me another answer option or type /done to publish.",
+                              reply_markup=ReplyKeyboardRemove())
+
+    if len(user_data['options']) >= handler.max_options - 1:
+        update.message.reply_text("Uh oh, you're running out of options. You can only have one more option.")
 
     return TYPING_OPTION
 
@@ -82,14 +97,16 @@ def handle_option(bot, update, user_data):
 def handle_done(bot, update, user_data):
     update.message.reply_text("Thanks man! Now here is your fine poll")
     options = []
-    for opt in user_data['options']:
+    for i,opt in enumerate(user_data['options']):
         options.append({
-            'text': opt
+            'text': opt,
+            'index': i
         })
 
     poll = {
         'poll_id': str(uuid4()),
         'title': user_data['title'],
+        'type': user_data['type'],
         'options': options
     }
 
@@ -135,30 +152,24 @@ def assemble_inline_keyboard(poll):
 
 
 def get_inline_keyboard_items(poll):
+    handler = POLL_TYPES_HANDLERS[poll['type']]
+    button_items = handler.options(poll)
     buttons = []
-    for i, option in enumerate(poll['options']):
-        num_votes = list(poll['votes'].values()).count(i) if 'votes' in poll else 0
-        buttons.append([
-            InlineKeyboardButton("{}{}{}".format(option['text'],
-                                                 " - " if num_votes > 0 else "",
-                                                 num_votes if num_votes > 0 else ""),
-                                 callback_data='{"id":"%s","i":%d}' % (poll['poll_id'], i))
-        ])
+    for row in button_items:
+        current_row = []
+        for item in row:
+            item['callback_data']['id'] = poll['poll_id']
+            current_row.append(InlineKeyboardButton(item['text'],
+                                                    callback_data=json.dumps(item['callback_data'], separators=(',', ':')) ))
+        buttons.append(current_row)
     return buttons
 
 
 def assemble_message_text(poll):
-    message = "*{}*\n".format(poll['title'])
-
-    for i, option in enumerate(poll['options']):
-        message += "\n"
-        message += "{}: {}".format(option['text'], get_num_votes(poll, i))
-
+    handler = POLL_TYPES_HANDLERS[poll['type']]
+    message = '{}\n{}'.format(handler.title(poll),
+                              handler.evaluation(poll))
     return message
-
-
-def get_num_votes(poll, i):
-    return list(poll['votes'].values()).count(i) if 'votes' in poll else 0
 
 
 def serialize(poll):
@@ -175,18 +186,6 @@ def deserialize(serialized):
     if 'votes' in poll:
         poll['votes'] = json.loads(serialized['votes'])
     return poll
-
-
-# Help command handler
-def help(bot, update):
-    """Send a message when the command /help is issued."""
-    update.message.reply_text('Oh no, there is no help! You are all alone!')
-
-
-# Error handler
-def error(bot, update, error):
-    """Log Errors caused by Updates."""
-    logger.warning('Update "%s" caused error "%s"', update, error)
 
 
 # Inline query handler
@@ -248,14 +247,29 @@ def button(bot, update):
 
     poll = deserialize(result)
     uid_str = str(query.from_user.id)
-    if uid_str in poll['votes']:
-        poll['votes'].pop(uid_str)
-    poll['votes'][uid_str] = data_dict['i']
+    handler = POLL_TYPES_HANDLERS[poll['type']]
+
+    handler.handle_vote(poll['votes'], uid_str, data_dict)
+
     bot.edit_message_text(text=assemble_message_text(poll),
                           parse_mode='Markdown',
                           reply_markup=assemble_inline_keyboard(poll),
                           **kwargs)
+
+    query.answer("Thanks for voting")
     table.upsert(serialize(poll), ['id'])
+
+
+# Help command handler
+def help(bot, update):
+    """Send a message when the command /help is issued."""
+    update.message.reply_text('Oh no, there is no help! You are all alone!')
+
+
+# Error handler
+def error(bot, update, error):
+    """Log Errors caused by Updates."""
+    logger.warning('Update "%s" caused error "%s"', update, error)
 
 
 def main():
@@ -264,13 +278,15 @@ def main():
     updater = Updater("409634665:AAEv8A3Y7ohbGKVOS8AwDiICI6ikZCFV4jQ")
 
     # Conversation handler for creating polls
+
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start),
                       MessageHandler(Filters.text, handle_title,
-                                     pass_user_data=True)
-                      ],
+                                     pass_user_data=True)],
         states={
-            NOT_ENGAGED: [],
+            NOT_ENGAGED: [CommandHandler('start', start),
+                          MessageHandler(Filters.text, handle_title,
+                                         pass_user_data=True)],
             TYPING_TITLE: [MessageHandler(Filters.text,
                                           handle_title,
                                           pass_user_data=True)],
