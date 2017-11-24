@@ -54,17 +54,30 @@ def evaluation(poll):
             counts = count_votes(votes, candidates)
             max_votes = max(counts)
             if max_votes >= quota:
+                # Somebody has hit the quota, elect them:
                 elected = [candidates[i] for i, count in enumerate(counts) if count == max_votes]
             else:
                 min_votes = min(counts)
-                del candidates[counts.index(min_votes)]
+                old_candidates = list(candidates)
+                # eliminate all candidates with lowest count:
+                delete_pls = []
+                for i, count in enumerate(counts):
+                    if count == min_votes:
+                        delete_pls.append(candidates[i])
+                for candidate in delete_pls:
+                    candidates.remove(candidate)
+                if not candidates:
+                    # The last remaining candidates were eliminated at the same time. We have a tie!
+                    # Elect these remaining candidates:
+                    elected = old_candidates
 
         elected_names = [get_option_name_by_index(poll, el) for el in elected]
-        message = "Current winner: {}".format(
+        message = "{}: {}".format(
+            "Current winner" if len(elected_names) == 1 else "We have a tie",
             ",".join(elected_names)
         )
     else:
-        message = "There is currently no winner."
+        message = "There are currently no votes."
 
     body = "This is an instant runoff poll. \n" \
            "You define an order of preference for the available options " \
@@ -97,7 +110,8 @@ def handle_vote(votes, user, callback_data):
         old_vote.append(callback_data['i'])
 
     if not old_vote:
-        votes.pop(user)
+        if user in votes:
+            votes.pop(user)
     else:
         votes[user] = old_vote
 
