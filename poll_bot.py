@@ -21,7 +21,7 @@ import json
 
 import basic_poll_handler
 import set_poll_handler
-import sitravo_poll_handler
+import instant_runoff_poll_handler
 
 from telegram.ext.inlinequeryhandler import InlineQueryHandler
 from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
@@ -38,19 +38,20 @@ db = dataset.connect('sqlite:///votes.db')
 # Conversation states:
 NOT_ENGAGED, TYPING_TITLE, TYPING_TYPE, TYPING_OPTION = range(4)
 
-POLL_TYPE_BASIC, POLL_TYPE_SET, POLL_TYPE_SITRAVO = range(3)
+POLL_TYPE_BASIC, POLL_TYPE_SET, POLL_TYPE_INSTANT_RUNOFF = range(3)
 
 POLL_TYPES_MAP = {
     POLL_TYPE_BASIC: "Basic poll",
     POLL_TYPE_SET: "Subset poll",
-    POLL_TYPE_SITRAVO: "Single transferable vote poll",
+    POLL_TYPE_INSTANT_RUNOFF: "Instant runoff poll",
 }
 
 POLL_TYPES_HANDLERS = {
     POLL_TYPE_BASIC: basic_poll_handler,
     POLL_TYPE_SET: set_poll_handler,
-    POLL_TYPE_SITRAVO: sitravo_poll_handler,
+    POLL_TYPE_INSTANT_RUNOFF: instant_runoff_poll_handler,
 }
+
 
 # Conversation handlers:
 def start(bot, update):
@@ -190,7 +191,7 @@ def deserialize(serialized):
 
 
 # Inline query handler
-def inlinequery(bot, update):
+def inline_query(bot, update):
     query = update.inline_query.query
 
     table = db['setpolls']
@@ -310,7 +311,7 @@ def main():
     dp.add_handler(CommandHandler("help", help))
 
     # Inline queries
-    dp.add_handler(InlineQueryHandler(inlinequery))
+    dp.add_handler(InlineQueryHandler(inline_query))
 
     # Callback queries from button presses
     dp.add_handler(CallbackQueryHandler(button))
