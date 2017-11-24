@@ -1,10 +1,13 @@
 import math
 
-max_options = 5
+max_options = 10
 
 
 def options(poll):
-    buttons = []
+    buttons = [[{
+            'text': "Clear my votes",
+            'callback_data': {'i': "C"}
+        }]]
     opts = poll['options']
 
     for option in opts:
@@ -63,7 +66,7 @@ def evaluation(poll):
     else:
         message = "There is currently no winner."
 
-    body = "This is a instant runoff vote. \n" \
+    body = "This is an instant runoff poll. \n" \
            "You define an order of preference for the available options " \
            "by clicking on them in that order. For evaluation, the lowest " \
            "ranking candidate is eliminated until there is a clear winner.\n\n*{}*".format(message)
@@ -86,7 +89,9 @@ def handle_vote(votes, user, callback_data):
     if user in votes:
         old_vote = votes[user]
 
-    if callback_data['i'] in old_vote:
+    if callback_data['i'] == 'C':
+        old_vote = {}
+    elif callback_data['i'] in old_vote:
         old_vote.remove(callback_data['i'])
     else:
         old_vote.append(callback_data['i'])
