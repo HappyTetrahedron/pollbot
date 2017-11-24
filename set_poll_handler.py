@@ -34,7 +34,6 @@ def evaluation(poll):
     return message
 
 
-
 def handle_vote(votes, user, callback_data):
     old_vote = None
     if user in votes:
@@ -44,6 +43,17 @@ def handle_vote(votes, user, callback_data):
         pass
     else:
         votes[user] = callback_data['i']
+
+
+def get_confirmation_message(poll, user):
+    votes = poll['votes']
+    if user in votes:
+        vote = votes[user]
+        opts = poll['options']
+        vote_set = [opt['text'] for opt in opts if opt['index'] in vote]
+        string = ",".join(vote_set) if vote_set else "nothing"
+        return "You voted for {}.".format(string)
+    return "Your vote was removed."
 
 
 def get_set_opt_text(title_set):
