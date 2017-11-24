@@ -47,29 +47,7 @@ def evaluation(poll):
     candidates = [opt['index'] for opt in poll['options']]
 
     if votes:
-        elected = None
-        quota = math.floor(len(votes) / 2) + 1
-
-        while elected is None:
-            counts = count_votes(votes, candidates)
-            max_votes = max(counts)
-            if max_votes >= quota:
-                # Somebody has hit the quota, elect them:
-                elected = [candidates[i] for i, count in enumerate(counts) if count == max_votes]
-            else:
-                min_votes = min(counts)
-                old_candidates = list(candidates)
-                # eliminate all candidates with lowest count:
-                delete_pls = []
-                for i, count in enumerate(counts):
-                    if count == min_votes:
-                        delete_pls.append(candidates[i])
-                for candidate in delete_pls:
-                    candidates.remove(candidate)
-                if not candidates:
-                    # The last remaining candidates were eliminated at the same time. We have a tie!
-                    # Elect these remaining candidates:
-                    elected = old_candidates
+        elected = run_election(candidates, list(votes.values()))
 
         elected_names = [get_option_name_by_index(poll, el) for el in elected]
         message = "{}: {}".format(
@@ -86,11 +64,54 @@ def evaluation(poll):
     return body
 
 
-def count_votes(votes, candidates):
+def run_election(candidates, votes, skip_index=0):
+    print("Election candidates")
+    import pprint
+    pprint.pprint(candidates)
+
+    if not any([v[skip_index:] for v in votes]):
+        # No votes left - it's a tie.
+        print("No votes left")
+        return candidates
+
+    elected = None
+    quota = math.floor(len(votes) / 2) + 1
+
+    while elected is None:
+        counts = count_votes(votes, candidates, skip_index)
+        print("Vote counts")
+        pprint.pprint(counts)
+        max_votes = max(counts)
+        if max_votes >= quota:
+            # Somebody has hit the quota, elect them:
+            elected = [candidates[i] for i, count in enumerate(counts) if count == max_votes]
+        else:
+            min_votes = min(counts)
+            old_candidates = list(candidates)
+            # eliminate all candidates with lowest count:
+            delete_pls = []
+            for i, count in enumerate(counts):
+                if count == min_votes:
+                    delete_pls.append(candidates[i])
+            print("Bailing out")
+            pprint.pprint(delete_pls)
+            for candidate in delete_pls:
+                candidates.remove(candidate)
+            if not candidates:
+                # The last remaining candidates were eliminated at the same time. We have a tie!
+                # Battle these remaining candidates:
+                return run_election(old_candidates, votes, skip_index=skip_index + 1)
+    return elected
+
+
+def count_votes(votes, candidates, skip_index):
     counts = [0] * len(candidates)
-    for vote in votes.values():
+    for vote in votes:
         vote_counted = False
-        for preference in vote:
+        import pprint
+        print("Restvote")
+        pprint.pprint(vote[skip_index:])
+        for preference in vote[skip_index:]:
             if preference in candidates and not vote_counted:
                 counts[candidates.index(preference)] += 1
                 vote_counted = True
