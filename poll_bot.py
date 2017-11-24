@@ -21,6 +21,7 @@ import json
 
 import basic_poll_handler
 import set_poll_handler
+import sitravo_poll_handler
 
 from telegram.ext.inlinequeryhandler import InlineQueryHandler
 from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
@@ -48,7 +49,7 @@ POLL_TYPES_MAP = {
 POLL_TYPES_HANDLERS = {
     POLL_TYPE_BASIC: basic_poll_handler,
     POLL_TYPE_SET: set_poll_handler,
-    POLL_TYPE_SITRAVO: basic_poll_handler,
+    POLL_TYPE_SITRAVO: sitravo_poll_handler,
 }
 
 # Conversation handlers:
@@ -251,13 +252,12 @@ def button(bot, update):
 
     handler.handle_vote(poll['votes'], uid_str, data_dict)
 
+    query.answer(handler.get_confirmation_message(poll, uid_str))
+    table.upsert(serialize(poll), ['inline_message_id', 'message_id', 'chat_id'])
     bot.edit_message_text(text=assemble_message_text(poll),
                           parse_mode='Markdown',
                           reply_markup=assemble_inline_keyboard(poll),
                           **kwargs)
-
-    query.answer("Thanks for voting")
-    table.upsert(serialize(poll), ['id'])
 
 
 # Help command handler
