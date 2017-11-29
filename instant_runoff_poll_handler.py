@@ -69,7 +69,34 @@ def evaluation(poll):
                 if not candidates:
                     # The last remaining candidates were eliminated at the same time. We have a tie!
                     # Elect these remaining candidates:
-                    elected = old_candidates
+                    candidates = old_candidates
+                    # Tiebreak fallback solution
+                    tiered_votes = {}
+                    for candidate in candidates:
+                        tiered_vote = get_votes_per_rank(poll, candidate)
+                        tiered_votes[candidate] = tiered_vote
+
+                    for i in range(1, len(poll['options']) + 1):
+                        # To resolve the tie, continually calculate prefix sums of our the votes per rank
+                        max_candidate_vote = 0
+                        current_best_candidates = []
+                        for candidate, vote in tiered_votes.items():
+                            prefix_sum = sum(vote[:i])
+                            if max_candidate_vote == prefix_sum:
+                                current_best_candidates.append(candidate)
+                            elif max_candidate_vote < prefix_sum:
+                                max_candidate_vote = prefix_sum
+                                current_best_candidates = [candidate]
+
+                        if len(current_best_candidates) == 1:
+                            # we have a winner!
+                            elected = current_best_candidates
+                            break
+
+                    if not elected:
+                        # We have a true tie
+                        elected = old_candidates
+
 
         elected_names = [get_option_name_by_index(poll, el) for el in elected]
         message = "{}: {}".format(
@@ -84,7 +111,6 @@ def evaluation(poll):
            "by clicking on them in that order. For evaluation, the lowest " \
            "ranking candidate is eliminated until there is a clear winner.\n\n*{}*".format(message)
     return body
-
 
 def count_votes(votes, candidates):
     counts = [0] * len(candidates)
