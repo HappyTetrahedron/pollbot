@@ -278,8 +278,8 @@ def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"', update, error)
 
 
-def main():
-    with open('config.yml', 'r') as configfile:
+def main(opts):
+    with open(opts.config, 'r') as configfile:
         config = yaml.load(configfile)
 
     """Start the bot."""
@@ -337,4 +337,8 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    from optparse import OptionParser
+    parser = OptionParser()
+    parser.add_option('-c', '--config', dest='config', default='config.yml', type='string', help="Path of configuration file")
+    (opts, args) = parser.parse_args()
+    main(opts)
