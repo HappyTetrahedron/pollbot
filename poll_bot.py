@@ -80,7 +80,7 @@ class PollBot:
     def handle_title(self, bot, update, user_data):
         text = update.message.text
         user_data['title'] = text
-        update.message.reply_text("Cool! What kind of survey is it going to be?",
+        update.message.reply_text("Cool! What kind of poll is it going to be?",
                                   reply_markup=self.assemble_reply_keyboard())
 
         return TYPING_TYPE
