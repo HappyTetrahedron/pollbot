@@ -10,6 +10,7 @@ Then, the bot is started and runs until we press Ctrl-C on the command line.
 """
 from uuid import uuid4
 
+import yaml
 from telegram import InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler, ConversationHandler, \
     RegexHandler
@@ -278,9 +279,12 @@ def error(bot, update, error):
 
 
 def main():
+    with open('config.yml', 'r') as configfile:
+        config = yaml.load(configfile)
+
     """Start the bot."""
     # Create the EventHandler and pass it your bot's token.
-    updater = Updater("TOKEN")
+    updater = Updater(config['token'])
 
     # Conversation handler for creating polls
 
