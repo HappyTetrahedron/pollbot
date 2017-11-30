@@ -21,7 +21,6 @@ def options(poll):
     return buttons
 
 
-
 def title(poll):
     return "*{}*".format(poll['title'])
 

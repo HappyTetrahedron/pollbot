@@ -16,7 +16,7 @@ def options(poll):
         vote_str = ",".join([str(v) for v in votes_per_rank])
         has_votes = True
         if max(votes_per_rank) == 0:
-            has_votes=False
+            has_votes = False
 
         buttons.append([{
             'text': "{}{}{}{}".format(option['text'],
@@ -82,6 +82,7 @@ def evaluation(poll):
                         current_best_candidates = []
                         for candidate, vote in tiered_votes.items():
                             prefix_sum = sum(vote[:i])
+                            # Keep all candidates with highest prefix sum
                             if max_candidate_vote == prefix_sum:
                                 current_best_candidates.append(candidate)
                             elif max_candidate_vote < prefix_sum:
@@ -108,9 +109,9 @@ def evaluation(poll):
     body = "This is an instant runoff poll. \n" \
            "You define an order of preference for the available options " \
            "by clicking on them in that order. For evaluation, the lowest " \
-           "ranking candidate is eliminated until there is a clear winner.\n" \
+           "ranking candidate is eliminated until there is a clear winner. \n" \
            "This poll uses a fall-back tie-breaking algorithm, meaning that it " \
-           " will try extra hard to break ties.\n\n*{}*".format(message)
+           "will try extra hard to break ties.\n\n*{}*".format(message)
     return body
 
 

@@ -9,7 +9,7 @@ def options(poll):
             'text': "{}{}{}".format(option['text'],
                                     " - " if votes > 0 else "",
                                     votes if votes > 0 else ""),
-             'callback_data': {'i': i},
+            'callback_data': {'i': i},
         }])
     return buttons
 

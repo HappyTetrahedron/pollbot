@@ -16,7 +16,7 @@ def options(poll):
         vote_str = ",".join([str(v) for v in votes_per_rank])
         has_votes = True
         if max(votes_per_rank) == 0:
-            has_votes=False
+            has_votes = False
 
         buttons.append([{
             'text': "{}{}{}{}".format(option['text'],
