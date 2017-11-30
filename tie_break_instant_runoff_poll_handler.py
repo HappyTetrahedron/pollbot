@@ -108,7 +108,9 @@ def evaluation(poll):
     body = "This is an instant runoff poll. \n" \
            "You define an order of preference for the available options " \
            "by clicking on them in that order. For evaluation, the lowest " \
-           "ranking candidate is eliminated until there is a clear winner.\n\n*{}*".format(message)
+           "ranking candidate is eliminated until there is a clear winner.\n" \
+           "This poll uses a fall-back tie-breaking algorithm, meaning that it " \
+           " will try extra hard to break ties.\n\n*{}*".format(message)
     return body
 
 
@@ -116,7 +118,7 @@ def count_votes(votes, candidates):
     counts = [0] * len(candidates)
     for vote in votes:
         vote_counted = False
-        for preference in vote[skip_index:]:
+        for preference in vote:
             if preference in candidates and not vote_counted:
                 counts[candidates.index(preference)] += 1
                 vote_counted = True

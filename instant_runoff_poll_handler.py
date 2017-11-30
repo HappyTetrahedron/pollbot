@@ -75,7 +75,6 @@ def run_election(candidates, votes, skip_index=0):
 
     while elected is None:
         counts = count_votes(votes, candidates, skip_index)
-        print("Vote counts")
         max_votes = max(counts)
         if max_votes >= quota:
             # Somebody has hit the quota, elect them:

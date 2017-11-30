@@ -19,14 +19,32 @@ import dataset
 
 import json
 
-import basic_poll_handler
-import set_poll_handler
-import instant_runoff_poll_handler
-
 from telegram.ext.inlinequeryhandler import InlineQueryHandler
 from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
 from telegram.inline.inlinequeryresultarticle import InlineQueryResultArticle
 from telegram.inline.inputtextmessagecontent import InputTextMessageContent
+
+import basic_poll_handler
+import set_poll_handler
+import instant_runoff_poll_handler
+import tie_break_instant_runoff_poll_handler
+
+POLL_TYPE_BASIC, POLL_TYPE_SET, POLL_TYPE_INSTANT_RUNOFF, POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK = range(4)
+
+POLL_TYPES_MAP = {
+    POLL_TYPE_BASIC: "Basic poll",
+    POLL_TYPE_SET: "Subset poll",
+    POLL_TYPE_INSTANT_RUNOFF: "Instant runoff poll",
+    POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK: "Instant runoff poll with fallback tie breaking",
+}
+
+POLL_TYPES_HANDLERS = {
+    POLL_TYPE_BASIC: basic_poll_handler,
+    POLL_TYPE_SET: set_poll_handler,
+    POLL_TYPE_INSTANT_RUNOFF: instant_runoff_poll_handler,
+    POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK: tie_break_instant_runoff_poll_handler,
+}
+
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=logging.INFO)
@@ -37,20 +55,6 @@ db = dataset.connect('sqlite:///votes.db')
 
 # Conversation states:
 NOT_ENGAGED, TYPING_TITLE, TYPING_TYPE, TYPING_OPTION = range(4)
-
-POLL_TYPE_BASIC, POLL_TYPE_SET, POLL_TYPE_INSTANT_RUNOFF = range(3)
-
-POLL_TYPES_MAP = {
-    POLL_TYPE_BASIC: "Basic poll",
-    POLL_TYPE_SET: "Subset poll",
-    POLL_TYPE_INSTANT_RUNOFF: "Instant runoff poll",
-}
-
-POLL_TYPES_HANDLERS = {
-    POLL_TYPE_BASIC: basic_poll_handler,
-    POLL_TYPE_SET: set_poll_handler,
-    POLL_TYPE_INSTANT_RUNOFF: instant_runoff_poll_handler,
-}
 
 
 # Conversation handlers:
