@@ -65,13 +65,9 @@ def evaluation(poll):
 
 
 def run_election(candidates, votes, skip_index=0):
-    print("Election candidates")
-    import pprint
-    pprint.pprint(candidates)
 
     if not any([v[skip_index:] for v in votes]):
         # No votes left - it's a tie.
-        print("No votes left")
         return candidates
 
     elected = None
@@ -80,7 +76,6 @@ def run_election(candidates, votes, skip_index=0):
     while elected is None:
         counts = count_votes(votes, candidates, skip_index)
         print("Vote counts")
-        pprint.pprint(counts)
         max_votes = max(counts)
         if max_votes >= quota:
             # Somebody has hit the quota, elect them:
@@ -93,8 +88,6 @@ def run_election(candidates, votes, skip_index=0):
             for i, count in enumerate(counts):
                 if count == min_votes:
                     delete_pls.append(candidates[i])
-            print("Bailing out")
-            pprint.pprint(delete_pls)
             for candidate in delete_pls:
                 candidates.remove(candidate)
             if not candidates:
@@ -108,9 +101,6 @@ def count_votes(votes, candidates, skip_index):
     counts = [0] * len(candidates)
     for vote in votes:
         vote_counted = False
-        import pprint
-        print("Restvote")
-        pprint.pprint(vote[skip_index:])
         for preference in vote[skip_index:]:
             if preference in candidates and not vote_counted:
                 counts[candidates.index(preference)] += 1
