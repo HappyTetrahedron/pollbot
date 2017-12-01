@@ -2,6 +2,8 @@ import math
 
 max_options = 10
 
+name = "Instant runoff poll with fallback tie-breaking"
+
 
 def options(poll):
     buttons = [[{
@@ -106,7 +108,7 @@ def evaluation(poll):
     else:
         message = "There are currently no votes."
 
-    body = "This is an instant runoff poll. \n" \
+    body = "This is an instant runoff poll with tie breaking. \n" \
            "You define an order of preference for the available options " \
            "by clicking on them in that order. For evaluation, the lowest " \
            "ranking candidate is eliminated until there is a clear winner. \n" \

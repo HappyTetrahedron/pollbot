@@ -1,7 +1,8 @@
 from functools import reduce
 
-
 max_options = 4
+
+name = "Subset poll"
 
 
 def options(poll):

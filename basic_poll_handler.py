@@ -1,5 +1,7 @@
 max_options = 10
 
+name = "Basic poll"
+
 
 def options(poll):
     buttons = []

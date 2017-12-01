@@ -71,7 +71,7 @@ class PollBot:
 
     def handle_type(self, bot, update, user_data):
         text = update.message.text
-        user_data['type'] = next((i for i, val in POLL_TYPES_MAP.items() if val == text), None)
+        user_data['type'] = next((i for i, handler in POLL_TYPES_HANDLERS.items() if handler.name == text), None)
         user_data['options'] = []
         update.message.reply_text("Awesome. Now, send me the first answer option.")
 
@@ -138,8 +138,8 @@ class PollBot:
 
     def assemble_reply_keyboard(self):
         keyboard = []
-        for _, val in POLL_TYPES_MAP.items():
-            keyboard.append([val])
+        for _, val in POLL_TYPES_HANDLERS.items():
+            keyboard.append([val.name])
 
         return ReplyKeyboardMarkup(
             keyboard,

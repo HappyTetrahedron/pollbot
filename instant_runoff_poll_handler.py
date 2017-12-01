@@ -2,6 +2,8 @@ import math
 
 max_options = 10
 
+name = "Instant runoff poll"
+
 
 def options(poll):
     buttons = [[{
