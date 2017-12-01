@@ -8,6 +8,7 @@ First, a few handler functions are defined. Then, those functions are passed to
 the Dispatcher and registered at their respective places.
 Then, the bot is started and runs until we press Ctrl-C on the command line.
 """
+import random
 from uuid import uuid4
 
 import yaml
@@ -50,6 +51,15 @@ logger = logging.getLogger(__name__)
 # Conversation states:
 NOT_ENGAGED, TYPING_TITLE, TYPING_TYPE, TYPING_OPTION = range(4)
 
+AFFIRMATIONS = [
+    "Cool",
+    "Nice",
+    "Doing great",
+    "Awesome",
+    "Okey dokey",
+    "Neat",
+]
+
 
 class PollBot:
     def __init__(self):
@@ -73,7 +83,8 @@ class PollBot:
     def handle_title(self, bot, update, user_data):
         text = update.message.text
         user_data['title'] = text
-        update.message.reply_text("Cool! What kind of poll is it going to be?",
+        update.message.reply_text("{}! What kind of poll is it going to be?"
+                                  .format(self.get_affirmation()),
                                   reply_markup=self.assemble_reply_keyboard())
 
         return TYPING_TYPE
@@ -86,7 +97,8 @@ class PollBot:
         if len(user_data['options']) >= handler.max_options:
             return self.handle_done(bot, update, user_data)
 
-        update.message.reply_text("Doing great! Now, send me another answer option or type /done to publish.",
+        update.message.reply_text("{}! Now, send me another answer option or type /done to publish."
+                                  .format(self.get_affirmation()),
                                   reply_markup=ReplyKeyboardRemove())
 
         if len(user_data['options']) >= handler.max_options - 1:
@@ -95,7 +107,7 @@ class PollBot:
         return TYPING_OPTION
 
     def handle_done(self, bot, update, user_data):
-        update.message.reply_text("Thanks man! Now here is your fine poll")
+        update.message.reply_text("Thanks man! Now here is your fine poll:")
         options = []
         for i,opt in enumerate(user_data['options']):
             options.append({
@@ -128,6 +140,9 @@ class PollBot:
         user_data.clear()
 
         return NOT_ENGAGED
+
+    def get_affirmation(self):
+        return random.choice(AFFIRMATIONS)
 
     def assemble_reply_keyboard(self):
         keyboard = []
