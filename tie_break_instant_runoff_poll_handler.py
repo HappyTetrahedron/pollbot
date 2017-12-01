@@ -90,6 +90,14 @@ def evaluation(poll):
                                 max_candidate_vote = prefix_sum
                                 current_best_candidates = [candidate]
 
+                        # Throw out all candidates that don't have highest prefix sum anymore
+                        to_remove = []
+                        for candidate, vote in tiered_votes.items():
+                            if candidate not in current_best_candidates:
+                                to_remove.append(candidate)
+                        for candidate in to_remove:
+                            tiered_votes.pop(candidate)
+
                         if len(current_best_candidates) == 1:
                             # we have a winner!
                             elected = current_best_candidates
