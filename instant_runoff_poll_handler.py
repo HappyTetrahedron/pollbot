@@ -62,7 +62,9 @@ def evaluation(poll):
     body = "This is an instant runoff poll. \n" \
            "You define an order of preference for the available options " \
            "by clicking on them in that order. For evaluation, the lowest " \
-           "ranking candidate is eliminated until there is a clear winner.\n\n*{}*".format(message)
+           "ranking candidate is eliminated until there is a clear winner. \n" \
+           "Make sure to select all options that would work for you, but " \
+           "don't select any of those that don't work.\n\n*{}*".format(message)
     return body
 
 
