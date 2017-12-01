@@ -33,14 +33,7 @@ import tie_break_instant_runoff_poll_handler
 
 POLL_TYPE_BASIC, POLL_TYPE_SET, POLL_TYPE_INSTANT_RUNOFF, POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK = range(4)
 
-POLL_TYPES_MAP = {
-    POLL_TYPE_BASIC: "Basic poll",
-    POLL_TYPE_SET: "Subset poll",
-    POLL_TYPE_INSTANT_RUNOFF: "Instant runoff poll",
-    POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK: "Instant runoff poll with fallback tie breaking",
-}
-
-POLL_TYPES_HANDLERS = {
+POLL_HANDLERS = {
     POLL_TYPE_BASIC: basic_poll_handler,
     POLL_TYPE_SET: set_poll_handler,
     POLL_TYPE_INSTANT_RUNOFF: instant_runoff_poll_handler,
@@ -71,7 +64,7 @@ class PollBot:
 
     def handle_type(self, bot, update, user_data):
         text = update.message.text
-        user_data['type'] = next((i for i, handler in POLL_TYPES_HANDLERS.items() if handler.name == text), None)
+        user_data['type'] = next((i for i, handler in POLL_HANDLERS.items() if handler.name == text), None)
         user_data['options'] = []
         update.message.reply_text("Awesome. Now, send me the first answer option.")
 
@@ -87,7 +80,7 @@ class PollBot:
 
     def handle_option(self, bot, update, user_data):
         text = update.message.text
-        handler = POLL_TYPES_HANDLERS[user_data['type']]
+        handler = POLL_HANDLERS[user_data['type']]
         user_data['options'].append(text)
 
         if len(user_data['options']) >= handler.max_options:
@@ -138,7 +131,7 @@ class PollBot:
 
     def assemble_reply_keyboard(self):
         keyboard = []
-        for _, val in POLL_TYPES_HANDLERS.items():
+        for _, val in POLL_HANDLERS.items():
             keyboard.append([val.name])
 
         return ReplyKeyboardMarkup(
@@ -147,7 +140,7 @@ class PollBot:
         )
 
     def assemble_type_regex(self):
-        orclause = '|'.join(list(POLL_TYPES_MAP.values()))
+        orclause = '|'.join([handler.name for handler in POLL_HANDLERS.values()])
         regex = '^({})$'.format(orclause)
         return regex
 
@@ -155,7 +148,7 @@ class PollBot:
         return InlineKeyboardMarkup(self.get_inline_keyboard_items(poll))
 
     def get_inline_keyboard_items(self, poll):
-        handler = POLL_TYPES_HANDLERS[poll['type']]
+        handler = POLL_HANDLERS[poll['type']]
         button_items = handler.options(poll)
         buttons = []
         for row in button_items:
@@ -168,7 +161,7 @@ class PollBot:
         return buttons
 
     def assemble_message_text(self, poll):
-        handler = POLL_TYPES_HANDLERS[poll['type']]
+        handler = POLL_HANDLERS[poll['type']]
         message = '{}\n{}'.format(handler.title(poll),
                                   handler.evaluation(poll))
         return message
@@ -245,7 +238,7 @@ class PollBot:
 
         poll = self.deserialize(result)
         uid_str = str(query.from_user.id)
-        handler = POLL_TYPES_HANDLERS[poll['type']]
+        handler = POLL_HANDLERS[poll['type']]
 
         handler.handle_vote(poll['votes'], uid_str, data_dict)
 
