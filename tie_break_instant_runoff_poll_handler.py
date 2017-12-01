@@ -70,11 +70,10 @@ def evaluation(poll):
                     candidates.remove(candidate)
                 if not candidates:
                     # The last remaining candidates were eliminated at the same time. We have a tie!
-                    # Elect these remaining candidates:
                     candidates = old_candidates
                     # Tiebreak fallback solution
                     tiered_votes = {}
-                    for candidate in candidates:
+                    for candidate in old_candidates:
                         tiered_vote = get_votes_per_rank(poll, candidate)
                         tiered_votes[candidate] = tiered_vote
 
@@ -98,7 +97,7 @@ def evaluation(poll):
 
                     if not elected:
                         # We have a true tie
-                        elected = old_candidates
+                        elected = current_best_candidates
 
         elected_names = [get_option_name_by_index(poll, el) for el in elected]
         message = "{}: {}".format(
@@ -119,7 +118,7 @@ def evaluation(poll):
 
 def count_votes(votes, candidates):
     counts = [0] * len(candidates)
-    for vote in votes:
+    for vote in votes.values():
         vote_counted = False
         for preference in vote:
             if preference in candidates and not vote_counted:
