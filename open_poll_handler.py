@@ -36,7 +36,7 @@ def handle_vote(votes, user, name, callback_data):
     old_vote = None
     if user in votes:
         old_vote = votes.pop(user)
-    if old_vote is not None and str(old_vote) == str(callback_data['i']):
+    if old_vote is not None and str(old_vote['data']) == str(callback_data['i']):
         # remove old vote
         pass
     else:
