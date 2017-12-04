@@ -21,7 +21,7 @@ def title(poll):
     
 
 def evaluation(poll):
-    message = ""
+    message = "This is an open poll. People will see what you voted for.\n"
     for i, option in enumerate(poll['options']):
         message += "\n"
         message += "*{}: {}*".format(option['text'], num_votes(poll, i))
