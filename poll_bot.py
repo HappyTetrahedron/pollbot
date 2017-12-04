@@ -30,15 +30,17 @@ import basic_poll_handler
 import set_poll_handler
 import instant_runoff_poll_handler
 import tie_break_instant_runoff_poll_handler
+import open_poll_handler
 
 
-POLL_TYPE_BASIC, POLL_TYPE_SET, POLL_TYPE_INSTANT_RUNOFF, POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK = range(4)
+POLL_TYPE_BASIC, POLL_TYPE_SET, POLL_TYPE_INSTANT_RUNOFF, POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK, POLL_TYPE_OPEN = range(5)
 
 POLL_HANDLERS = {
     POLL_TYPE_BASIC: basic_poll_handler,
     POLL_TYPE_SET: set_poll_handler,
     POLL_TYPE_INSTANT_RUNOFF: instant_runoff_poll_handler,
     POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK: tie_break_instant_runoff_poll_handler,
+    POLL_TYPE_OPEN: open_poll_handler,
 }
 
 
@@ -253,9 +255,10 @@ class PollBot:
 
         poll = self.deserialize(result)
         uid_str = str(query.from_user.id)
+        name = str(query.from_user.first_name)
         handler = POLL_HANDLERS[poll['type']]
 
-        handler.handle_vote(poll['votes'], uid_str, data_dict)
+        handler.handle_vote(poll['votes'], uid_str, name, data_dict)
 
         query.answer(handler.get_confirmation_message(poll, uid_str))
         table.upsert(self.serialize(poll), ['inline_message_id', 'message_id', 'chat_id'])

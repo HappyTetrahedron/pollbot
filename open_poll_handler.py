@@ -1,6 +1,6 @@
 max_options = 10
 
-name = "Basic poll"
+name = "Open poll"
 
 
 def options(poll):
@@ -24,7 +24,11 @@ def evaluation(poll):
     message = ""
     for i, option in enumerate(poll['options']):
         message += "\n"
-        message += "{}: {}".format(option['text'], num_votes(poll, i))
+        message += "*{}: {}*".format(option['text'], num_votes(poll, i))
+        users = get_users_voting_for(poll, option)
+        for user in users:
+            message += "\n "
+            message += user
     return message
 
 
@@ -36,7 +40,10 @@ def handle_vote(votes, user, name, callback_data):
         # remove old vote
         pass
     else:
-        votes[user] = callback_data['i']
+        votes[user] = {
+            'data': callback_data['i'],
+            'name': name
+        }
 
 
 def get_confirmation_message(poll, user):
@@ -44,10 +51,14 @@ def get_confirmation_message(poll, user):
     if user in votes:
         vote = votes[user]
         for option in poll['options']:
-            if option['index'] == vote:
+            if option['index'] == vote['data']:
                 return "You voted for \"{}\".".format(option['text'])
     return "Your vote was removed."
 
 
 def num_votes(poll, i):
-    return list(poll['votes'].values()).count(i) if 'votes' in poll else 0
+    return [val['data'] for val in poll['votes'].values()].count(i) if 'votes' in poll else 0
+
+
+def get_users_voting_for(poll, option):
+    return [val['name'] for val in poll['votes'].values() if val['data'] == option['index']] if 'votes' in poll else []

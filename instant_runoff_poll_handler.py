@@ -111,7 +111,7 @@ def count_votes(votes, candidates, skip_index):
     return counts
 
 
-def handle_vote(votes, user, callback_data):
+def handle_vote(votes, user, name, callback_data):
     old_vote = []
     if user in votes:
         old_vote = votes[user]

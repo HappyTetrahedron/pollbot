@@ -34,7 +34,7 @@ def evaluation(poll):
     return message
 
 
-def handle_vote(votes, user, callback_data):
+def handle_vote(votes, user, name, callback_data):
     old_vote = None
     if user in votes:
         old_vote = votes.pop(user)
