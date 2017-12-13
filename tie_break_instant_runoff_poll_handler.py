@@ -115,12 +115,14 @@ def evaluation(poll):
     else:
         message = "There are currently no votes."
 
+    num_votes = len(poll.get('votes', {}))
+
     body = "This is an instant runoff poll with tie breaking. \n" \
            "You define an order of preference for the available options " \
            "by clicking on them in that order. For evaluation, the lowest " \
            "ranking candidate is eliminated until there is a clear winner. \n" \
            "This poll uses a fall-back tie-breaking algorithm, meaning that it " \
-           "will try extra hard to break ties.\n\n*{}*".format(message)
+           "will try extra hard to break ties.\n\n*{}*\n{} people voted so far".format(message, num_votes)
     return body
 
 

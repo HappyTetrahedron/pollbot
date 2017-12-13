@@ -59,12 +59,14 @@ def evaluation(poll):
     else:
         message = "There are currently no votes."
 
+    num_votes = len(poll.get('votes', {}))
+
     body = "This is an instant runoff poll. \n" \
            "You define an order of preference for the available options " \
            "by clicking on them in that order. For evaluation, the lowest " \
            "ranking candidate is eliminated until there is a clear winner. \n" \
            "Make sure to select all options that would work for you, but " \
-           "don't select any of those that don't work.\n\n*{}*".format(message)
+           "don't select any of those that don't work.\n\n*{}*\n{} people voted so far".format(message, num_votes)
     return body
 
 
