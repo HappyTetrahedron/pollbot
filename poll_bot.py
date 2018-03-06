@@ -72,7 +72,7 @@ class PollBot:
     # Conversation handlers:
     def start(self, bot, update):
         """Send a message when the command /start is issued."""
-        update.message.reply_text('Hi! Please send me the title of your poll.')
+        update.message.reply_text('Hi! Please send me the title of your poll. (/cancel to exit)')
 
         return TYPING_TITLE
 
@@ -87,13 +87,13 @@ class PollBot:
             update.message.reply_text(POLL_HANDLERS[polltype].ask_for_extra_config(user_data.get('meta')))
             return TYPING_META
         else:
-            update.message.reply_text("{}. Now, send me the first answer option.".format(self.get_affirmation()))
+            update.message.reply_text("{}. Now, send me the first answer option. (or /cancel)".format(self.get_affirmation()))
             return TYPING_OPTION
 
     def handle_title(self, bot, update, user_data):
         text = update.message.text
         user_data['title'] = text
-        update.message.reply_text("{}! What kind of poll is it going to be?"
+        update.message.reply_text("{}! What kind of poll is it going to be? (/cancel to shut me up)"
                                   .format(self.get_affirmation()),
                                   reply_markup=self.assemble_reply_keyboard())
 
@@ -293,9 +293,29 @@ class PollBot:
                               **kwargs)
 
     # Help command handler
-    def help(self, bot, update):
+    def send_help(self, bot, update):
         """Send a message when the command /help is issued."""
-        update.message.reply_text('Oh no, there is no help! You are all alone!')
+        helptext = "I'm a poll bot! I can do polls!\n\n" \
+                   "Start by typing /start or by directly " \
+                   "sending me the title of your poll. I " \
+                   "will then help you to construct a wonderful" \
+                   "poll suited for your purpose. \n\n" \
+                   "There are a multitude of poll types available. " \
+                   "Here I have a description of each: \n\n"
+
+        for poll in POLL_HANDLERS.values():
+            helptext += "*{}*: _{}_\n".format(
+                poll.name,
+                poll.desc
+            )
+
+        print(helptext)
+        update.message.reply_text(helptext, parse_mode="Markdown")
+
+    def cancel(self, bot, update):
+        update.message.reply_text("Oh, too bad. Maybe next time!",
+                                  reply_markup=ReplyKeyboardRemove())
+        return NOT_ENGAGED
 
     # Error handler
     def error(self, bot, update, error):
@@ -321,21 +341,26 @@ class PollBot:
             states={
                 NOT_ENGAGED: [CommandHandler('start', self.start),
                               MessageHandler(Filters.text, self.handle_title,
-                                             pass_user_data=True)],
+                                             pass_user_data=True),
+                              CommandHandler('cancel', self.cancel)],
                 TYPING_TITLE: [MessageHandler(Filters.text,
                                               self.handle_title,
-                                              pass_user_data=True)],
+                                              pass_user_data=True),
+                               CommandHandler('cancel', self.cancel)],
                 TYPING_TYPE: [RegexHandler(self.assemble_type_regex(),
                                            self.handle_type,
-                                           pass_user_data=True)],
+                                           pass_user_data=True),
+                              CommandHandler('cancel', self.cancel)],
                 TYPING_META: [MessageHandler(Filters.text,
                                              self.handle_meta,
-                                             pass_user_data=True)],
+                                             pass_user_data=True),
+                              CommandHandler('cancel', self.cancel)],
                 TYPING_OPTION: [MessageHandler(Filters.text,
                                                self.handle_option,
                                                pass_user_data=True),
                                 CommandHandler("done", self.handle_done,
-                                               pass_user_data=True)]
+                                               pass_user_data=True),
+                                CommandHandler('cancel', self.cancel)]
             },
             fallbacks=[RegexHandler('^Done$', self.handle_done, pass_user_data=True)]
         )
@@ -345,7 +370,7 @@ class PollBot:
         dp.add_handler(conv_handler)
 
         # on different commands - answer in Telegram
-        dp.add_handler(CommandHandler("help", help))
+        dp.add_handler(CommandHandler("help", self.send_help))
 
         # Inline queries
         dp.add_handler(InlineQueryHandler(self.inline_query))
