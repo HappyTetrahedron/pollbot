@@ -4,6 +4,7 @@ max_options = 10
 
 name = "Instant runoff poll"
 
+has_extra_config = False
 
 def options(poll):
     buttons = [[{

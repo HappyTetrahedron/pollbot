@@ -2,3 +2,5 @@ __pycache__
 .idea
 *.swp
 *.db
+
+config.yml

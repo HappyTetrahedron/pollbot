@@ -2,6 +2,7 @@ max_options = 10
 
 name = "Open poll"
 
+has_extra_config = False
 
 def options(poll):
     buttons = []

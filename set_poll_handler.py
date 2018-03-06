@@ -4,6 +4,7 @@ max_options = 4
 
 name = "Subset poll"
 
+has_extra_config = False
 
 def options(poll):
     buttons = []

@@ -1,8 +1,8 @@
 max_options = 10
 
-name = "Basic poll"
+name = "Basic poll with custom description"
 
-has_extra_config = False
+has_extra_config = True
 
 
 def options(poll):
@@ -23,7 +23,8 @@ def title(poll):
     
 
 def evaluation(poll):
-    message = ""
+    message = poll['meta']['text']
+    message += "\n"
     for i, option in enumerate(poll['options']):
         message += "\n"
         message += "{}: {}".format(option['text'], num_votes(poll, i))
@@ -51,5 +52,17 @@ def get_confirmation_message(poll, user):
     return "Your vote was removed."
 
 
+def ask_for_extra_config(meta):
+    return "Please enter the text to be displayed above your poll:"
+
+
+def register_extra_config(text, meta):
+    meta['text'] = text
+
+
 def num_votes(poll, i):
     return list(poll['votes'].values()).count(i) if 'votes' in poll else 0
+
+
+def requires_extra_config(meta):
+    return 'text' not in meta

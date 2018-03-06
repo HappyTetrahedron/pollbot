@@ -31,9 +31,15 @@ import set_poll_handler
 import instant_runoff_poll_handler
 import tie_break_instant_runoff_poll_handler
 import open_poll_handler
+import custom_description_poll_handler
 
 
-POLL_TYPE_BASIC, POLL_TYPE_SET, POLL_TYPE_INSTANT_RUNOFF, POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK, POLL_TYPE_OPEN = range(5)
+POLL_TYPE_BASIC, \
+    POLL_TYPE_SET, \
+    POLL_TYPE_INSTANT_RUNOFF, \
+    POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK, \
+    POLL_TYPE_OPEN, \
+    POLL_TYPE_CUSTOM_DESCRIPTION = range(6)
 
 POLL_HANDLERS = {
     POLL_TYPE_BASIC: basic_poll_handler,
@@ -41,6 +47,7 @@ POLL_HANDLERS = {
     POLL_TYPE_INSTANT_RUNOFF: instant_runoff_poll_handler,
     POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK: tie_break_instant_runoff_poll_handler,
     POLL_TYPE_OPEN: open_poll_handler,
+    POLL_TYPE_CUSTOM_DESCRIPTION: custom_description_poll_handler,
 }
 
 
@@ -51,7 +58,7 @@ logger = logging.getLogger(__name__)
 
 
 # Conversation states:
-NOT_ENGAGED, TYPING_TITLE, TYPING_TYPE, TYPING_OPTION = range(4)
+NOT_ENGAGED, TYPING_TITLE, TYPING_TYPE, TYPING_OPTION, TYPING_META = range(5)
 
 AFFIRMATIONS = [
     "Cool",
@@ -60,6 +67,9 @@ AFFIRMATIONS = [
     "Awesome",
     "Okey dokey",
     "Neat",
+    "Whoo",
+    "Wonderful",
+    "Splendid",
 ]
 
 
@@ -76,11 +86,16 @@ class PollBot:
 
     def handle_type(self, bot, update, user_data):
         text = update.message.text
-        user_data['type'] = next((i for i, handler in POLL_HANDLERS.items() if handler.name == text), None)
+        polltype = next((i for i, handler in POLL_HANDLERS.items() if handler.name == text), None)
+        user_data['type'] = polltype
         user_data['options'] = []
-        update.message.reply_text("Awesome. Now, send me the first answer option.")
 
-        return TYPING_OPTION
+        if POLL_HANDLERS[polltype].has_extra_config:
+            update.message.reply_text(POLL_HANDLERS[polltype].ask_for_extra_config(user_data.get('meta')))
+            return TYPING_META
+        else:
+            update.message.reply_text("{}. Now, send me the first answer option.".format(self.get_affirmation()))
+            return TYPING_OPTION
 
     def handle_title(self, bot, update, user_data):
         text = update.message.text
@@ -108,6 +123,20 @@ class PollBot:
 
         return TYPING_OPTION
 
+    def handle_meta(self, bot, update, user_data):
+        text = update.message.text
+        polltype = user_data['type']
+        if 'meta' not in user_data:
+            user_data['meta'] = dict()
+        POLL_HANDLERS[polltype].register_extra_config(text, user_data.get('meta'))
+        if POLL_HANDLERS[polltype].requires_extra_config(user_data.get('meta')):
+            update.message.reply_text(POLL_HANDLERS[polltype].ask_for_extra_config(user_data.get('meta')))
+            return TYPING_META
+        else:
+            update.message.reply_text("{}, that's it! Next, please send me the first answer option."
+                                      .format(self.get_affirmation()))
+            return TYPING_OPTION
+
     def handle_done(self, bot, update, user_data):
         update.message.reply_text("Thanks man! Now here is your fine poll:")
         options = []
@@ -121,7 +150,8 @@ class PollBot:
             'poll_id': str(uuid4()),
             'title': user_data['title'],
             'type': user_data['type'],
-            'options': options
+            'options': options,
+            'meta': user_data.get('meta'),
         }
 
         table = self.db['setpolls']
@@ -188,6 +218,8 @@ class PollBot:
         ser['options'] = json.dumps(poll['options'])
         if 'votes' in ser:
             ser['votes'] = json.dumps(poll['votes'])
+        if 'meta' in ser:
+            ser['meta'] = json.dumps(poll['meta'])
         return ser
 
     def deserialize(self, serialized):
@@ -195,6 +227,8 @@ class PollBot:
         poll['options'] = json.loads(serialized['options'])
         if 'votes' in poll:
             poll['votes'] = json.loads(serialized['votes'])
+        if 'meta' in poll:
+            poll['meta'] = json.loads(serialized['meta'])
         return poll
 
     # Inline query handler
@@ -303,6 +337,9 @@ class PollBot:
                 TYPING_TYPE: [RegexHandler(self.assemble_type_regex(),
                                            self.handle_type,
                                            pass_user_data=True)],
+                TYPING_META: [MessageHandler(Filters.text,
+                                             self.handle_meta,
+                                             pass_user_data=True)],
                 TYPING_OPTION: [MessageHandler(Filters.text,
                                                self.handle_option,
                                                pass_user_data=True),
