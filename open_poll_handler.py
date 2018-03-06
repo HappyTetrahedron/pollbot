@@ -1,8 +1,8 @@
-max_options = 10
+from base_poll_handler import *
 
 name = "Open poll"
+desc = "Like basic poll, but you can see who voted for what."
 
-has_extra_config = False
 
 def options(poll):
     buttons = []

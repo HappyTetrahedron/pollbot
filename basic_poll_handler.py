@@ -1,8 +1,7 @@
-max_options = 10
+from base_poll_handler import *
 
 name = "Basic poll"
-
-has_extra_config = False
+desc = "A straightforward first-past-the-post poll."
 
 
 def options(poll):
@@ -17,10 +16,6 @@ def options(poll):
         }])
     return buttons
 
-
-def title(poll):
-    return "*{}*".format(poll['title'])
-    
 
 def evaluation(poll):
     message = ""

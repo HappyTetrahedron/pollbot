@@ -1,10 +1,9 @@
+from base_poll_handler import *
 import math
 
-max_options = 10
-
 name = "Instant runoff poll"
+desc = "Lets you define an order of preference and picks the option which is preferred by most."
 
-has_extra_config = False
 
 def options(poll):
     buttons = [[{

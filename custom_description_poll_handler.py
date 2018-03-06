@@ -1,8 +1,7 @@
-max_options = 10
+from base_poll_handler import *
 
 name = "Basic poll with custom description"
-
-has_extra_config = True
+desc = "Like basic poll, but lets you add a custom text to the poll message."
 
 
 def options(poll):

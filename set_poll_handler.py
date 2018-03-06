@@ -1,10 +1,11 @@
 from functools import reduce
+from base_poll_handler import *
 
 max_options = 4
 
 name = "Subset poll"
+desc = "Lets you vote for any subset of the available options"
 
-has_extra_config = False
 
 def options(poll):
     buttons = []
@@ -21,10 +22,6 @@ def options(poll):
             'callback_data': {'i': index_set}
         }])
     return buttons
-
-
-def title(poll):
-    return "*{}*".format(poll['title'])
 
 
 def evaluation(poll):

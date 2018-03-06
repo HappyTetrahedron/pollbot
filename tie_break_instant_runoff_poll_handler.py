@@ -1,10 +1,10 @@
+from base_poll_handler import *
 import math
 
-max_options = 10
 
 name = "Instant runoff poll with fallback tie-breaking"
+desc = "Like instant runoff, but tries extra hard to break ties."
 
-has_extra_config = False
 
 def options(poll):
     buttons = [[{

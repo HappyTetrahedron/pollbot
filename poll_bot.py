@@ -1,13 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-"""Simple Bot to reply to Telegram messages.
-This program is dedicated to the public domain under the CC0 license.
-This Bot uses the Updater class to handle the bot.
-First, a few handler functions are defined. Then, those functions are passed to
-the Dispatcher and registered at their respective places.
-Then, the bot is started and runs until we press Ctrl-C on the command line.
-"""
 import random
 from uuid import uuid4
 
@@ -89,8 +81,9 @@ class PollBot:
         polltype = next((i for i, handler in POLL_HANDLERS.items() if handler.name == text), None)
         user_data['type'] = polltype
         user_data['options'] = []
+        user_data['meta'] = dict()
 
-        if POLL_HANDLERS[polltype].has_extra_config:
+        if POLL_HANDLERS[polltype].requires_extra_config(user_data['meta']):
             update.message.reply_text(POLL_HANDLERS[polltype].ask_for_extra_config(user_data.get('meta')))
             return TYPING_META
         else:
@@ -126,8 +119,6 @@ class PollBot:
     def handle_meta(self, bot, update, user_data):
         text = update.message.text
         polltype = user_data['type']
-        if 'meta' not in user_data:
-            user_data['meta'] = dict()
         POLL_HANDLERS[polltype].register_extra_config(text, user_data.get('meta'))
         if POLL_HANDLERS[polltype].requires_extra_config(user_data.get('meta')):
             update.message.reply_text(POLL_HANDLERS[polltype].ask_for_extra_config(user_data.get('meta')))
