@@ -298,7 +298,7 @@ class PollBot:
         helptext = "I'm a poll bot! I can do polls!\n\n" \
                    "Start by typing /start or by directly " \
                    "sending me the title of your poll. I " \
-                   "will then help you to construct a wonderful" \
+                   "will then help you to construct a wonderful " \
                    "poll suited for your purpose. \n\n" \
                    "There are a multitude of poll types available. " \
                    "Here I have a description of each: \n\n"
