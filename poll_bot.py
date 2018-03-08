@@ -24,6 +24,7 @@ import instant_runoff_poll_handler
 import tie_break_instant_runoff_poll_handler
 import open_poll_handler
 import custom_description_poll_handler
+import stv_poll_handler
 
 
 POLL_TYPE_BASIC, \
@@ -31,7 +32,8 @@ POLL_TYPE_BASIC, \
     POLL_TYPE_INSTANT_RUNOFF, \
     POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK, \
     POLL_TYPE_OPEN, \
-    POLL_TYPE_CUSTOM_DESCRIPTION = range(6)
+    POLL_TYPE_CUSTOM_DESCRIPTION,\
+    POLL_TYPE_STV = range(7)
 
 POLL_HANDLERS = {
     POLL_TYPE_BASIC: basic_poll_handler,
@@ -40,6 +42,7 @@ POLL_HANDLERS = {
     POLL_TYPE_INSTANT_RUNOFF_TIE_BREAK: tie_break_instant_runoff_poll_handler,
     POLL_TYPE_OPEN: open_poll_handler,
     POLL_TYPE_CUSTOM_DESCRIPTION: custom_description_poll_handler,
+    POLL_TYPE_STV: stv_poll_handler,
 }
 
 
@@ -309,7 +312,6 @@ class PollBot:
                 poll.desc
             )
 
-        print(helptext)
         update.message.reply_text(helptext, parse_mode="Markdown")
 
     def cancel(self, bot, update):
