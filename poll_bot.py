@@ -155,14 +155,8 @@ class PollBot:
 
         table.insert(self.serialize(poll))
 
-        inline_keyboard_items = self.get_inline_keyboard_items(poll)
-        publish_button = InlineKeyboardButton("Publish!",
-                                              switch_inline_query=poll['poll_id'])
-        inline_keyboard_items.append([publish_button])
-        inline_keyboard = InlineKeyboardMarkup(inline_keyboard_items)
-
         update.message.reply_text(self.assemble_message_text(poll),
-                                  reply_markup=inline_keyboard,
+                                  reply_markup=self.assemble_inline_keyboard(poll, True),
                                   parse_mode='Markdown'
                                   )
 
@@ -188,8 +182,14 @@ class PollBot:
         regex = '^({})$'.format(orclause)
         return regex
 
-    def assemble_inline_keyboard(self, poll):
-        return InlineKeyboardMarkup(self.get_inline_keyboard_items(poll))
+    def assemble_inline_keyboard(self, poll, include_publish_button=False):
+        inline_keyboard_items = self.get_inline_keyboard_items(poll)
+        if include_publish_button:
+            publish_button = InlineKeyboardButton("Publish!",
+                                                  switch_inline_query=poll['poll_id'])
+            inline_keyboard_items.append([publish_button])
+
+        return InlineKeyboardMarkup(inline_keyboard_items)
 
     def get_inline_keyboard_items(self, poll):
         handler = POLL_HANDLERS[poll['type']]
@@ -262,7 +262,11 @@ class PollBot:
         templates = self.db['setpolls']
 
         kwargs = {}
+        include_publish_button = False
         if query.message:
+            if query.message.from_user.bot == bot:
+                include_publish_button = True
+
             kwargs['message_id'] = query.message.message_id
             kwargs['chat_id'] = query.message.chat.id
             result = table.find_one(message_id=query.message.message_id,
@@ -295,7 +299,7 @@ class PollBot:
         table.upsert(self.serialize(poll), ['inline_message_id', 'message_id', 'chat_id'])
         bot.edit_message_text(text=self.assemble_message_text(poll),
                               parse_mode='Markdown',
-                              reply_markup=self.assemble_inline_keyboard(poll),
+                              reply_markup=self.assemble_inline_keyboard(poll, include_publish_button),
                               **kwargs)
 
     # Help command handler
