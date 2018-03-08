@@ -1,25 +1,8 @@
-from base_poll_handler import *
+from basic_poll_handler import *
 
 name = "Open poll"
 desc = "Like basic poll, but you can see who voted for what."
 
-
-def options(poll):
-    buttons = []
-    for i, option in enumerate(poll['options']):
-        votes = num_votes(poll, i)
-        buttons.append([{
-            'text': "{}{}{}".format(option['text'],
-                                    " - " if votes > 0 else "",
-                                    votes if votes > 0 else ""),
-            'callback_data': {'i': i},
-        }])
-    return buttons
-
-
-def title(poll):
-    return "*{}*".format(poll['title'])
-    
 
 def evaluation(poll):
     message = "This is an open poll. People will see what you voted for.\n"
@@ -45,16 +28,6 @@ def handle_vote(votes, user, name, callback_data):
             'data': callback_data['i'],
             'name': name
         }
-
-
-def get_confirmation_message(poll, user):
-    votes = poll['votes']
-    if user in votes:
-        vote = votes[user]
-        for option in poll['options']:
-            if option['index'] == vote['data']:
-                return "You voted for \"{}\".".format(option['text'])
-    return "Your vote was removed."
 
 
 def num_votes(poll, i):

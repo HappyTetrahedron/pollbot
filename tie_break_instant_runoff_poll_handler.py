@@ -41,10 +41,6 @@ def get_votes_per_rank(poll, opt_index):
     return counts
 
 
-def title(poll):
-    return "*{}*".format(poll['title'])
-
-
 def evaluation(poll):
     votes = poll.get('votes', {})
     candidates = [opt['index'] for opt in poll['options']]
