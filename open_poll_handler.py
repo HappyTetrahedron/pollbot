@@ -30,6 +30,16 @@ def handle_vote(votes, user, name, callback_data):
         }
 
 
+def get_confirmation_message(poll, user):
+    votes = poll['votes']
+    if user in votes:
+        vote = votes[user]
+        for option in poll['options']:
+            if option['index'] == vote['data']:
+                return "You voted for \"{}\".".format(option['text'])
+    return "Your vote was removed."
+
+
 def num_votes(poll, i):
     return [val['data'] for val in poll['votes'].values()].count(i) if 'votes' in poll else 0
 
