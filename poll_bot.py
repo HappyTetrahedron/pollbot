@@ -225,7 +225,8 @@ class PollBot:
         if 'votes' in poll:
             poll['votes'] = json.loads(serialized['votes'])
         if 'meta' in poll:
-            poll['meta'] = json.loads(serialized['meta'])
+            meta = serialized['meta']
+            poll['meta'] = "" if meta is None else json.loads(meta)
         return poll
 
     # Inline query handler
@@ -233,14 +234,22 @@ class PollBot:
         query = update.inline_query.query
 
         table = self.db['setpolls']
-        result = table.find_one(poll_id=query)
+        result = list(table.find(poll_id=query))
         if not result:
-            update.inline_query.answer(results=[],
-                                       switch_pm_text="Create a new poll",
-                                       switch_pm_parameter="start")
-        else:
-            poll = self.deserialize(result)
-            results = [
+            table = self.db['setpolls'].table
+            statement = table.select(table.c.title.like('%{}%'.format(query)))
+            result = list(self.db.query(statement))
+
+            if not result:
+                update.inline_query.answer(results=[],
+                                           switch_pm_text="Create a new poll",
+                                           switch_pm_parameter="start")
+                return
+
+        inline_results = []
+        for res in result:
+            poll = self.deserialize(res)
+            inline_results.append(
                 InlineQueryResultArticle(
                     id=poll['poll_id'],
                     title=poll['title'],
@@ -250,8 +259,8 @@ class PollBot:
                     ),
                     reply_markup=self.assemble_inline_keyboard(poll)
                 )
-            ]
-            update.inline_query.answer(results)
+            )
+        update.inline_query.answer(inline_results)
 
     # Inline button press handler
     def button(self, bot, update):
