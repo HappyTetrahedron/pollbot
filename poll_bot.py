@@ -27,6 +27,7 @@ import custom_description_poll_handler
 import stv_poll_handler
 import custom_description_open_poll_handler
 import custom_description_instant_runoff_poll_handler
+import multiple_options_poll_handler
 
 
 POLL_TYPE_BASIC, \
@@ -37,7 +38,8 @@ POLL_TYPE_BASIC, \
     POLL_TYPE_CUSTOM_DESCRIPTION,\
     POLL_TYPE_STV,\
     POLL_TYPE_OPEN_CUSTOM_DESCRIPTION,\
-    POLL_TYPE_INSTANT_RUNOFF_CUSTOM_DESCRIPTION = range(9)
+    POLL_TYPE_INSTANT_RUNOFF_CUSTOM_DESCRIPTION,\
+    POLL_TYPE_MULTIPLE_OPTIONS = range(10)
 
 POLL_HANDLERS = {
     POLL_TYPE_BASIC: basic_poll_handler,
@@ -49,6 +51,7 @@ POLL_HANDLERS = {
     POLL_TYPE_STV: stv_poll_handler,
     POLL_TYPE_OPEN_CUSTOM_DESCRIPTION: custom_description_open_poll_handler,
     POLL_TYPE_INSTANT_RUNOFF_CUSTOM_DESCRIPTION: custom_description_instant_runoff_poll_handler,
+    POLL_TYPE_MULTIPLE_OPTIONS: multiple_options_poll_handler,
 }
 
 
