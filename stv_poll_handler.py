@@ -160,7 +160,7 @@ def transfer_votes(votes, quota, candidate_info):
 
 
 def eliminate_lowest_candidates(candidate_info):
-    minimum = math.inf
+    minimum = float('inf')
     lowest = []
 
     for candidate, info in candidate_info.items():
