@@ -1,8 +1,6 @@
 from functools import reduce
 from base_poll_handler import *
 
-max_options = 4
-
 name = "Multiple options poll"
 desc = "Lets you vote for multiple options"
 
