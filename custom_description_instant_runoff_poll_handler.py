@@ -12,6 +12,8 @@ def evaluation(poll):
     votes = poll.get('votes', {})
     candidates = [opt['index'] for opt in poll['options']]
 
+    explanation = "Click on only those options that work for you, in the order of your preference."
+
     if votes:
         elected = run_election(candidates, list(votes.values()))
 
@@ -26,6 +28,6 @@ def evaluation(poll):
     num_votes = len(poll.get('votes', {}))
 
     body = poll['meta']['text']
-    body += "\n\n*{}*\n{} people voted so far".format(message, num_votes)
+    body += "\n\n{}\n\n*{}*\n{} people voted so far".format(explanation, message, num_votes)
     return body
 
