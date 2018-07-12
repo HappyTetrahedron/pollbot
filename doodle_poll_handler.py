@@ -94,13 +94,9 @@ def handle_vote(votes, user, name, callback_data):
 
 
 def get_confirmation_message(poll, user):
-    votes = poll['votes']
+    votes = poll.get('votes')
     if user in votes:
-        vote = votes[user]
-        opts = poll['options']
-        vote_set = [opt['text'] for opt in opts if opt['index'] in vote.keys()]
-        string = ",".join(vote_set) if vote_set else "nothing"
-        return "You voted for {}.".format(string)
+        return "Your vote was registered."
     return "Your vote was removed."
 
 
