@@ -28,8 +28,6 @@ def options(poll):
 def evaluation(poll):
     message = ""
     best_opts = find_best(poll)
-    import pprint
-    pprint.pprint(best_opts)
     for option in poll['options']:
         message += "\n"
         if option['index'] in best_opts:
@@ -43,7 +41,7 @@ def evaluation(poll):
 
 def find_best(poll):
     opts = poll['options']
-    votes = poll['votes']
+    votes = poll.get('votes')
 
     if not votes:
         return []
