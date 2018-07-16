@@ -22,12 +22,22 @@ def options(poll):
                                     inb if inb > 0 else ""),
             'callback_data': {'i': opt['index']}
         }])
+
+    nopes = num_cant_make_it(poll)
+    buttons.append([{
+        'text': "Can't make it{}{}".format(
+            " - " if nopes > 0 else "",
+            nopes if nopes > 0 else ""
+        ),
+        'callback_data': {'i': "N"}
+    }])
     return buttons
 
 
 def evaluation(poll):
     message = ""
     best_opts = find_best(poll)
+    num_votes = len(poll.get('votes', {}))
     for option in poll['options']:
         message += "\n"
         if option['index'] in best_opts:
@@ -36,6 +46,8 @@ def evaluation(poll):
         inb = num_inb_on_option(poll, option['index'])
         if inb > 0:
             message += ", {} if need be".format(inb)
+
+    message += "\n\n{} people voted so far".format(num_votes)
     return message
 
 
@@ -78,7 +90,10 @@ def handle_vote(votes, user, name, callback_data):
     if pressed == 'C':
         # remove vote
         pass
-    elif old_vote is not None and pressed in old_vote.keys():
+    elif pressed == 'N':
+        if old_vote != "nope":
+            votes[user] = "nope"
+    elif old_vote is not None and old_vote != "nope" and pressed in old_vote.keys():
         if old_vote[pressed] == "y":
             old_vote[pressed] = "i"
             votes[user] = old_vote
@@ -86,7 +101,7 @@ def handle_vote(votes, user, name, callback_data):
             old_vote.pop(pressed)
             if old_vote:
                 votes[user] = old_vote
-    elif old_vote is not None:
+    elif old_vote is not None and old_vote != "nope":
         old_vote[pressed] = "y"
         votes[user] = old_vote
     else:
@@ -109,6 +124,8 @@ def num_votes_on_option(poll, index):
 
     num = 0
     for cast_vote in votes.values():
+        if cast_vote == "nope":
+            continue
         if string_index in cast_vote.keys():
             num += 1
     return num
@@ -123,6 +140,8 @@ def num_yes_on_option(poll, index):
 
     num = 0
     for cast_vote in votes.values():
+        if cast_vote == "nope":
+            continue
         if string_index in cast_vote.keys():
             if cast_vote[string_index] == 'y':
                 num += 1
@@ -138,7 +157,21 @@ def num_inb_on_option(poll, index):
 
     num = 0
     for cast_vote in votes.values():
+        if cast_vote == "nope":
+            continue
         if string_index in cast_vote.keys():
             if cast_vote[string_index] == 'i':
                 num += 1
+    return num
+
+
+def num_cant_make_it(poll):
+    if 'votes' not in poll:
+        return 0
+    votes = poll['votes']
+
+    num = 0
+    for cast_vote in votes.values():
+        if cast_vote == "nope":
+            num += 1
     return num
