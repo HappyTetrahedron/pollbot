@@ -360,7 +360,7 @@ class PollBot:
 
         """Start the bot."""
         # Create the EventHandler and pass it your bot's token.
-        updater = Updater(config['token'])
+        updater = Updater(config['token'], use_context=False)
 
         # Conversation handler for creating polls
 
