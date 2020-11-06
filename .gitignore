@@ -2,5 +2,7 @@ __pycache__
 .idea
 *.swp
 *.db
+venv
+pollbot
 
 config.yml

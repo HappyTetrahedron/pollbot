@@ -94,62 +94,62 @@ class PollBot:
 
         return TYPING_TITLE
 
-    def handle_type(self, bot, update, user_data):
+    def handle_type(self, update, context):
         text = update.message.text
         polltype = next((i for i, handler in POLL_HANDLERS.items() if handler.name == text), None)
-        user_data['type'] = polltype
-        user_data['options'] = []
-        user_data['meta'] = dict()
+        context.user_data['type'] = polltype
+        context.user_data['options'] = []
+        context.user_data['meta'] = dict()
 
-        if POLL_HANDLERS[polltype].requires_extra_config(user_data['meta']):
-            update.message.reply_text(POLL_HANDLERS[polltype].ask_for_extra_config(user_data.get('meta')))
+        if POLL_HANDLERS[polltype].requires_extra_config(context.user_data['meta']):
+            update.message.reply_text(POLL_HANDLERS[polltype].ask_for_extra_config(context.user_data.get('meta')))
             return TYPING_META
         else:
             update.message.reply_text("{}. Now, send me the first answer option. (or /cancel)".format(self.get_affirmation()))
             return TYPING_OPTION
 
-    def handle_title(self, bot, update, user_data):
+    def handle_title(self, update, context):
         text = update.message.text
-        user_data['title'] = text
+        context.user_data['title'] = text
         update.message.reply_text("{}! What kind of poll is it going to be? (/cancel to shut me up)"
                                   .format(self.get_affirmation()),
                                   reply_markup=self.assemble_reply_keyboard())
 
         return TYPING_TYPE
 
-    def handle_option(self, bot, update, user_data):
+    def handle_option(self, update, context):
         text = update.message.text
-        handler = POLL_HANDLERS[user_data['type']]
-        user_data['options'].append(text)
+        handler = POLL_HANDLERS[context.user_data['type']]
+        context.user_data['options'].append(text)
 
-        if len(user_data['options']) >= handler.max_options:
-            return self.handle_done(bot, update, user_data)
+        if len(context.user_data['options']) >= handler.max_options:
+            return self.handle_done(update, context)
 
         update.message.reply_text("{}! Now, send me another answer option or type /done to publish."
                                   .format(self.get_affirmation()),
                                   reply_markup=ReplyKeyboardRemove())
 
-        if len(user_data['options']) >= handler.max_options - 1:
+        if len(context.user_data['options']) >= handler.max_options - 1:
             update.message.reply_text("Uh oh, you're running out of options. You can only have one more option.")
 
         return TYPING_OPTION
 
-    def handle_meta(self, bot, update, user_data):
+    def handle_meta(self, update, context):
         text = update.message.text
-        polltype = user_data['type']
-        POLL_HANDLERS[polltype].register_extra_config(text, user_data.get('meta'))
-        if POLL_HANDLERS[polltype].requires_extra_config(user_data.get('meta')):
-            update.message.reply_text(POLL_HANDLERS[polltype].ask_for_extra_config(user_data.get('meta')))
+        polltype = context.user_data['type']
+        POLL_HANDLERS[polltype].register_extra_config(text, context.user_data.get('meta'))
+        if POLL_HANDLERS[polltype].requires_extra_config(context.user_data.get('meta')):
+            update.message.reply_text(POLL_HANDLERS[polltype].ask_for_extra_config(context.user_data.get('meta')))
             return TYPING_META
         else:
             update.message.reply_text("{}, that's it! Next, please send me the first answer option."
                                       .format(self.get_affirmation()))
             return TYPING_OPTION
 
-    def handle_done(self, bot, update, user_data):
+    def handle_done(self, update, context):
         update.message.reply_text("Thanks man! Now here is your fine poll:")
         options = []
-        for i,opt in enumerate(user_data['options']):
+        for i,opt in enumerate(context.user_data['options']):
             options.append({
                 'text': opt,
                 'index': i
@@ -157,10 +157,10 @@ class PollBot:
 
         poll = {
             'poll_id': str(uuid4()),
-            'title': user_data['title'],
-            'type': user_data['type'],
+            'title': context.user_data['title'],
+            'type': context.user_data['type'],
             'options': options,
-            'meta': user_data.get('meta'),
+            'meta': context.user_data.get('meta'),
         }
 
         table = self.db['setpolls']
@@ -172,7 +172,7 @@ class PollBot:
                                   parse_mode='Markdown'
                                   )
 
-        user_data.clear()
+        context.user_data.clear()
 
         return NOT_ENGAGED
 
@@ -242,7 +242,7 @@ class PollBot:
         return poll
 
     # Inline query handler
-    def inline_query(self, bot, update):
+    def inline_query(self, update, context):
         query = update.inline_query.query
 
         table = self.db['setpolls']
@@ -275,7 +275,7 @@ class PollBot:
         update.inline_query.answer(inline_results)
 
     # Inline button press handler
-    def button(self, bot, update):
+    def button(self, update, context):
         query = update.callback_query
         data_dict = json.loads(update.callback_query.data)
 
@@ -285,7 +285,7 @@ class PollBot:
         kwargs = {}
         include_publish_button = False
         if query.message:
-            if query.message.from_user.bot == bot:
+            if query.message.from_user.id == context.bot.get_me().id:
                 include_publish_button = True
 
             kwargs['message_id'] = query.message.message_id
@@ -295,17 +295,19 @@ class PollBot:
             if not result:
                 result = templates.find_one(poll_id=data_dict['id'])
                 result = dict(result)
-                result.pop('id')
+                result.pop('id', None)
                 result['message_id'] = query.message.message_id
                 result['chat_id'] = query.message.chat.id
                 result['votes'] = '{}'
+            import pprint
+            pprint.pprint(result)
         elif query.inline_message_id:
             kwargs['inline_message_id'] = query.inline_message_id
             result = table.find_one(inline_message_id=query.inline_message_id)
             if not result:
                 result = templates.find_one(poll_id=data_dict['id'])
                 result = dict(result)
-                result.pop('id')
+                result.pop('id', None)
                 result['inline_message_id'] = query.inline_message_id
                 result['votes'] = '{}'
 
@@ -317,14 +319,19 @@ class PollBot:
         handler.handle_vote(poll['votes'], uid_str, name, data_dict)
 
         query.answer(handler.get_confirmation_message(poll, uid_str))
-        table.upsert(self.serialize(poll), ['inline_message_id', 'message_id', 'chat_id'])
-        bot.edit_message_text(text=self.assemble_message_text(poll),
+        import pprint
+        pprint.pprint(self.serialize(poll))
+        if 'inline_message_id' in poll:
+            table.upsert(self.serialize(poll), ['inline_message_id', 'chat_id'])
+        if 'message_id' in poll:
+            table.upsert(self.serialize(poll), ['message_id', 'chat_id'])
+        context.bot.edit_message_text(text=self.assemble_message_text(poll),
                               parse_mode='Markdown',
                               reply_markup=self.assemble_inline_keyboard(poll, include_publish_button),
                               **kwargs)
 
     # Help command handler
-    def send_help(self, bot, update):
+    def send_help(self, update, context):
         """Send a message when the command /help is issued."""
         helptext = "I'm a poll bot! I can do polls!\n\n" \
                    "Start by typing /start or by directly " \
@@ -342,15 +349,15 @@ class PollBot:
 
         update.message.reply_text(helptext, parse_mode="Markdown")
 
-    def cancel(self, bot, update):
+    def cancel(self, update, context):
         update.message.reply_text("Oh, too bad. Maybe next time!",
                                   reply_markup=ReplyKeyboardRemove())
         return NOT_ENGAGED
 
     # Error handler
-    def error(self, bot, update, error):
+    def error(self, update, context):
         """Log Errors caused by Updates."""
-        logger.warning('Update "%s" caused error "%s"', update, error)
+        logger.warning('Update "%s" caused error "%s"', update, context.error)
 
     def run(self, opts):
         with open(opts.config, 'r') as configfile:
@@ -360,39 +367,44 @@ class PollBot:
 
         """Start the bot."""
         # Create the EventHandler and pass it your bot's token.
-        updater = Updater(config['token'], use_context=False)
+        updater = Updater(config['token'])
 
         # Conversation handler for creating polls
 
         conv_handler = ConversationHandler(
-            entry_points=[CommandHandler('start', self.start),
+            entry_points=[CommandHandler('newpoll', self.start),
                           MessageHandler(Filters.text, self.handle_title,
                                          pass_user_data=True)],
             states={
                 NOT_ENGAGED: [CommandHandler('start', self.start),
+                              CommandHandler('cancel', self.cancel),
                               MessageHandler(Filters.text, self.handle_title,
                                              pass_user_data=True),
-                              CommandHandler('cancel', self.cancel)],
-                TYPING_TITLE: [MessageHandler(Filters.text,
+                              ],
+                TYPING_TITLE: [CommandHandler('cancel', self.cancel),
+                               MessageHandler(Filters.text,
                                               self.handle_title,
                                               pass_user_data=True),
-                               CommandHandler('cancel', self.cancel)],
-                TYPING_TYPE: [RegexHandler(self.assemble_type_regex(),
+                               ],
+                TYPING_TYPE: [CommandHandler('cancel', self.cancel),
+                              RegexHandler(self.assemble_type_regex(),
                                            self.handle_type,
-                                           pass_user_data=True),
-                              CommandHandler('cancel', self.cancel)],
-                TYPING_META: [MessageHandler(Filters.text,
+                                           pass_user_data=True)
+                              ],
+                TYPING_META: [CommandHandler('cancel', self.cancel),
+                              MessageHandler(Filters.text,
                                              self.handle_meta,
-                                             pass_user_data=True),
-                              CommandHandler('cancel', self.cancel)],
-                TYPING_OPTION: [MessageHandler(Filters.text,
+                                             pass_user_data=True)],
+                TYPING_OPTION: [CommandHandler('done', self.handle_done,
+                                               pass_user_data=True),
+                                CommandHandler('cancel', self.cancel),
+                                MessageHandler(Filters.text,
                                                self.handle_option,
-                                               pass_user_data=True),
-                                CommandHandler("done", self.handle_done,
-                                               pass_user_data=True),
-                                CommandHandler('cancel', self.cancel)]
+                                               pass_user_data=True)]
             },
-            fallbacks=[RegexHandler('^Done$', self.handle_done, pass_user_data=True)]
+            fallbacks=[
+                CommandHandler('done', self.handle_done, pass_user_data=True),
+            ]
         )
 
         # Get the dispatcher to register handlers
