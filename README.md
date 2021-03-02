@@ -35,4 +35,4 @@ The config file looks like this:
 token: "123456789:ThisIsYourTelegramBotSecretToken1234"
 db: "votes.db" 
 ```
-The `db` entry is the path of the SQLite database in which debt information is stored. Provide a file name, and a sqlite file will automatically be created.
+The `db` entry is the path of the SQLite database in which poll information is stored. Provide a file name, and a sqlite file will automatically be created.
