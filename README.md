@@ -1,13 +1,13 @@
 # pollbot
 Telegram poll bot - run all sorts of different polls, such as polls with multiple options, polls with different evaluation strategies, or polls where you can see who voted for what.
 
-Check out the [official instance](https://t.me/polytope_bot) if all you want is to use this bot
+Check out the [official instance](https://t.me/polytope_bot) if all you want is to use this bot.
 
 ### But, Telegram has native polls now!
 Yes, that's true. But this bot still has a few more features ;)
 
 ## Usage
-Simply text the `\start` command to the bot and it will guide you through the creation of a new poll.
+Simply text the `/start` command to the bot and it will guide you through the creation of a new poll.
 
 ## Poll types
 
