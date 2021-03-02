@@ -5,8 +5,7 @@ from uuid import uuid4
 
 import yaml
 from telegram import InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler, ConversationHandler, \
-    RegexHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler, ConversationHandler
 import logging
 
 import dataset
@@ -88,7 +87,7 @@ class PollBot:
         self.db = None
 
     # Conversation handlers:
-    def start(self, bot, update):
+    def start(self, update, context):
         """Send a message when the command /start is issued."""
         update.message.reply_text('Hi! Please send me the title of your poll. (/cancel to exit)')
 
@@ -319,12 +318,10 @@ class PollBot:
         handler.handle_vote(poll['votes'], uid_str, name, data_dict)
 
         query.answer(handler.get_confirmation_message(poll, uid_str))
-        import pprint
-        pprint.pprint(self.serialize(poll))
-        if 'inline_message_id' in poll:
-            table.upsert(self.serialize(poll), ['inline_message_id', 'chat_id'])
-        if 'message_id' in poll:
-            table.upsert(self.serialize(poll), ['message_id', 'chat_id'])
+        if 'id' in poll:
+            table.update(self.serialize(poll), ['id'])
+        else:
+            table.insert(self.serialize(poll))
         context.bot.edit_message_text(text=self.assemble_message_text(poll),
                               parse_mode='Markdown',
                               reply_markup=self.assemble_inline_keyboard(poll, include_publish_button),
@@ -361,7 +358,7 @@ class PollBot:
 
     def run(self, opts):
         with open(opts.config, 'r') as configfile:
-            config = yaml.load(configfile)
+            config = yaml.load(configfile, Loader=yaml.SafeLoader)
 
         self.db = dataset.connect('sqlite:///{}'.format(config['db']))
 
@@ -387,7 +384,7 @@ class PollBot:
                                               pass_user_data=True),
                                ],
                 TYPING_TYPE: [CommandHandler('cancel', self.cancel),
-                              RegexHandler(self.assemble_type_regex(),
+                              MessageHandler(Filters.regex(self.assemble_type_regex()),
                                            self.handle_type,
                                            pass_user_data=True)
                               ],
@@ -409,10 +406,11 @@ class PollBot:
 
         # Get the dispatcher to register handlers
         dp = updater.dispatcher
-        dp.add_handler(conv_handler)
-
         # on different commands - answer in Telegram
         dp.add_handler(CommandHandler("help", self.send_help))
+
+        dp.add_handler(conv_handler)
+
 
         # Inline queries
         dp.add_handler(InlineQueryHandler(self.inline_query))
