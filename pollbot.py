@@ -5,17 +5,15 @@ from uuid import uuid4
 
 import yaml
 from telegram import InlineKeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler, ConversationHandler
+from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackQueryHandler, ConversationHandler, ApplicationBuilder
+import telegram.ext.filters as filters
 import logging
 
 import dataset
 
 import json
 
-from telegram.ext.inlinequeryhandler import InlineQueryHandler
-from telegram.inline.inlinekeyboardmarkup import InlineKeyboardMarkup
-from telegram.inline.inlinequeryresultarticle import InlineQueryResultArticle
-from telegram.inline.inputtextmessagecontent import InputTextMessageContent
+from telegram.ext import InlineQueryHandler
 
 import basic_poll_handler
 import set_poll_handler
@@ -364,71 +362,63 @@ class PollBot:
 
         """Start the bot."""
         # Create the EventHandler and pass it your bot's token.
-        updater = Updater(config['token'])
+        app = ApplicationBuilder().token(config['token']).build()
 
         # Conversation handler for creating polls
 
         conv_handler = ConversationHandler(
             entry_points=[CommandHandler('newpoll', self.start),
-                          MessageHandler(Filters.text, self.handle_title,
+                          MessageHandler(filters.Text, self.handle_title,
                                          pass_user_data=True)],
             states={
                 NOT_ENGAGED: [CommandHandler('start', self.start),
                               CommandHandler('cancel', self.cancel),
-                              MessageHandler(Filters.text, self.handle_title,
+                              MessageHandler(filters.Text, self.handle_title,
                                              pass_user_data=True),
                               ],
                 TYPING_TITLE: [CommandHandler('cancel', self.cancel),
-                               MessageHandler(Filters.text,
+                               MessageHandler(filters.Text,
                                               self.handle_title,
                                               pass_user_data=True),
                                ],
                 TYPING_TYPE: [CommandHandler('cancel', self.cancel),
-                              MessageHandler(Filters.regex(self.assemble_type_regex()),
+                              MessageHandler(filters.Regex(self.assemble_type_regex()),
                                            self.handle_type,
                                            pass_user_data=True)
                               ],
                 TYPING_META: [CommandHandler('cancel', self.cancel),
-                              MessageHandler(Filters.text,
+                              MessageHandler(filters.Text,
                                              self.handle_meta,
                                              pass_user_data=True)],
                 TYPING_OPTION: [CommandHandler('done', self.handle_done,
                                                pass_user_data=True),
                                 CommandHandler('cancel', self.cancel),
-                                MessageHandler(Filters.text,
-                                               self.handle_option,
-                                               pass_user_data=True)]
+                                MessageHandler(filters.Text,
+                                               self.handle_option)]
             },
             fallbacks=[
                 CommandHandler('done', self.handle_done, pass_user_data=True),
             ]
         )
 
-        # Get the dispatcher to register handlers
-        dp = updater.dispatcher
         # on different commands - answer in Telegram
-        dp.add_handler(CommandHandler("help", self.send_help))
+        app.add_handler(CommandHandler("help", self.send_help))
 
-        dp.add_handler(conv_handler)
+        app.add_handler(conv_handler)
 
 
         # Inline queries
-        dp.add_handler(InlineQueryHandler(self.inline_query))
+        app.add_handler(InlineQueryHandler(self.inline_query))
 
         # Callback queries from button presses
-        dp.add_handler(CallbackQueryHandler(self.button))
+        app.add_handler(CallbackQueryHandler(self.button))
 
         # log all errors
-        dp.add_error_handler(self.error)
+        app.add_error_handler(self.error)
 
         # Start the Bot
-        updater.start_polling()
-
-        # Run the bot until you press Ctrl-C or the process receives SIGINT,
-        # SIGTERM or SIGABRT. This should be used most of the time, since
-        # start_polling() is non-blocking and will stop the bot gracefully.
-        updater.idle()
-
+            
+        app.run_polling()
 
 def main(opts):
     PollBot().run(opts)
